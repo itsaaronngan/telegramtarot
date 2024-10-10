@@ -105,7 +105,7 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": f"You are a helpful assistant providing follow-up guidance based on a tarot reading. The tarot reading is here: {tarot_reading}. (tarot reading ends)"},
+            {"role": "system", "content": f"You are a helpful assistant providing follow-up guidance based on a tarot reading. Do not repeat the tarot reading format, instead take a warm empathetic tone and keep responses brief and ask follow-up questions that aim to acknowledge the experience of the user and stimulate a supportive conversation. For reference, the tarot reading is here: {tarot_reading}. (tarot reading ends)"},
             {"role": "user", "content": user_message}
         ]
     )
