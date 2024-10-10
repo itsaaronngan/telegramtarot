@@ -37,9 +37,12 @@ async def start(update: Update, context: CallbackContext) -> None:
         parse_mode=ParseMode.HTML
     )
 
-# Function to handle tarot readings
 async def handle_tarot_reading(update: Update, context: CallbackContext) -> None:
-    logger.info(f"User {update.message.from_user.first_name} requested a tarot reading.")
+    query = update.callback_query
+
+    # Use callback query to get the user's info
+    user_first_name = query.from_user.first_name
+    logger.info(f"User {user_first_name} requested a tarot reading.")
 
     # Send a request to OpenAI API for a tarot reading
     completion = client.completions.create(
@@ -54,12 +57,13 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     tarot_reading = completion.choices[0].message['content']
 
     # Send the tarot reading back to the user on Telegram
-    await update.message.reply_text(
+    await query.message.reply_text(
         f"<b>Your Tarot Reading:</b>\n\n{tarot_reading}",
         reply_markup=READING_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
-
+    await query.answer()
+    
 # Function to handle follow-up questions after the tarot reading
 async def handle_followup_questions(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
