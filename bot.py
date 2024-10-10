@@ -72,7 +72,7 @@ READING_MENU_MARKUP = InlineKeyboardMarkup([[
     InlineKeyboardButton(ASK_QUESTIONS_BUTTON, callback_data=ASK_QUESTIONS_BUTTON),
 ]])
 
-def split_message(message, chunk_size=4096):
+def split_message(message, chunk_size=1900):
     return [message[i:i + chunk_size] for i in range(0, len(message), chunk_size)]
 
 def send_discord_message(message):
