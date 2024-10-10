@@ -1,9 +1,9 @@
 import os
-import openai
+from openai import OpenAI
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 # Initialize OpenAI API key (from Heroku config vars or environment)
-openai.api_key = os.getenv('OPENAI_API_KEY')
+client = OpenAI()
 
 # Define a function to handle the /start command
 def start(update, context):
@@ -14,16 +14,16 @@ def handle_message(update, context):
     user_message = update.message.text
 
     # Send the user's message to OpenAI API (ChatGPT)
-    response = openai.ChatCompletion.create(
-        model="gpt-4",  # Replace 'gpt-4' with 'gpt-3.5-turbo' if necessary
+    completion = client.chat.completions.create(
+        model="gpt-4o",  # Model you provided
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": "You are a helpful assistant in a telegram chatbot, keep your responses brief and prompt for additional input and confirmations"},
             {"role": "user", "content": user_message}
         ]
     )
 
-    # Extract the reply from the response
-    reply = response['choices'][0]['message']['content']
+    # Extract the reply from the response (using your provided structure)
+    reply = completion.choices[0].message
 
     # Send the reply back to the user on Telegram
     update.message.reply_text(reply)
@@ -45,5 +45,7 @@ def main():
 
     # Start polling for updates from Telegram
     updater.start_polling()
+    updater.idle()  # Keep the bot running
 
-    # Keep the bot running​⬤
+if __name__ == '__main__':
+    main()
