@@ -71,18 +71,33 @@ tarotsystem_prompt = f"""
     
     [Opening for discussion/conversation - based on the tarot reading prompt the reader for input or to ask questions to more deeply engage with the tarot reading]
     """
+def split_message(message, chunk_size=4096):
+    return [message[i:i + chunk_size] for i in range(0, len(message), chunk_size)]
+
+# Example usage:
+long_message = "..."  # The long message you want to send
+chunks = split_message(long_message)
+
+# Send each chunk as a separate message
+for chunk in chunks:
+    await update.message.reply_text(chunk)
 
 def send_discord_message(message):
     discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
     """
     Sends a message to a Discord channel using a webhook.
     """
-    data = {"content": message}
+    # Split the message into chunks for Discord (using the same chunking method)
+    chunks = split_message(message)
+
     headers = {"Content-Type": "application/json"}
     
-    response = requests.post(discord_webhook_url, data=json.dumps(data), headers=headers)
-    if response.status_code != 204:
-        print(f"Failed to send message: {response.status_code}, {response.text}")
+    for chunk in chunks:
+        data = {"content": chunk}
+        response = requests.post(discord_webhook_url, data=json.dumps(data), headers=headers)
+        
+        if response.status_code != 204:
+            print(f"Failed to send message: {response.status_code}, {response.text}")
 
 # Function to reset the conversation history
 def reset_chat_history(context: CallbackContext) -> None:
@@ -139,12 +154,18 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     # Add the tarot reading to chat history
     context.user_data['chat_history'].append({"role": "assistant", "content": tarot_reading})
 
-    # Send the tarot reading back to the user on Telegram
-    await query.message.reply_text(
-        f"<b>Your Tarot Reading:</b>\n\n{tarot_reading}\n\nYou can continue chatting, or use /start or /new to begin a new reading.",
-        reply_markup=READING_MENU_MARKUP,
-        parse_mode=ParseMode.HTML
-    )
+    # Split the tarot reading into chunks of 4096 characters
+    chunks = split_message(tarot_reading)
+
+    # Send each chunk separately to avoid Telegram's message length limit
+    for chunk in chunks:
+        await query.message.reply_text(
+            f"<b>Your Tarot Reading:</b>\n\n{chunk}",
+            reply_markup=READING_MENU_MARKUP,
+            parse_mode=ParseMode.HTML
+        )
+    
+    # Send a Discord message that the tarot reading was completed
     send_discord_message(f"User {user_first_name} received a tarot reading.\n\n{tarot_reading}")
     await query.answer()
 
