@@ -72,16 +72,10 @@ READING_MENU_MARKUP = InlineKeyboardMarkup([[
     InlineKeyboardButton(ASK_QUESTIONS_BUTTON, callback_data=ASK_QUESTIONS_BUTTON),
 ]])
 
-def split_message(message, chunk_size=4096):
+def split_message(message, chunk_size=4000):
     return [message[i:i + chunk_size] for i in range(0, len(message), chunk_size)]
 
-    # Example usage:
-    long_message = "..."  # The long message you want to send
-    chunks = split_message(long_message)
 
-    # Send each chunk as a separate message
-    for chunk in chunks:
-        await update.message.reply_text(chunk)
 
 def send_discord_message(message):
     discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
