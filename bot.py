@@ -44,8 +44,8 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     user_first_name = query.from_user.first_name
     logger.info(f"User {user_first_name} requested a tarot reading.")
 
-    # Send a request to OpenAI API for a tarot reading
-    completion = client.completions.create(
+    # Send a request to OpenAI ChatGPT API for a tarot reading
+    completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear."},
@@ -63,7 +63,7 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
         parse_mode=ParseMode.HTML
     )
     await query.answer()
-    
+
 # Function to handle follow-up questions after the tarot reading
 async def handle_followup_questions(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
