@@ -35,37 +35,41 @@ READING_MENU_MARKUP = InlineKeyboardMarkup([[
 ]])
 
 tarotsystem_prompt = f"""
-    {instruction_string}
-    {context_string}
-    {style_string}
-    
+   
     ## Instructions
-    Create the reading with a total of {wordcount} words. Follow the sample structure exactly. {language_string}. Use casual conversational gentle tone. 
+    Create a 3 card Thesis, Antithesis, Synthesis tarot reading with a total of 500 words. Follow the sample structure exactly. Use casual conversational gentle tone. Promote conversation and in depth exploration.
 
     ## Tone, Style, and Language
     Avoid white juju and overly positive language that is overly vague/shallow. Avoid self-help buzzwords. Instead of using words like "transformation" use "transmutation", instead of "manifest" make references to "taking action" Use a gentle, empathetic, and respectful tone. Avoid overly formal language. If appropriate, reference the complexity inherant in life: e.g. happiness cannot be appreciated without sorrow.
 
-    ## Sample Structure:
-    ### [{draw_style}] Reading
-    [gentle 70 word introduction explaining the basics of {draw_style} and the purpose of the reading. {context_describe_string}. tone: respectful, warm, gentle, empathetic. avoid: greetings such as "hi there" or "hello there", excitement, overenthusiasm, chipper.]
+    [Structure]
+    ### Your Tarot Reading: [Card 1], [Card 2], [Card 3]    
+
+	### Thesis/Antithesis/Synthesis Reading
+    [gentle 50 word introduction explaining the basics of {draw_style} and the purpose of the reading.   	avoid: greetings such as "hi there" or "hello there", excitement, overenthusiasm, chipper.]
 
     # Your Reading [short simple expressive title based on reading and context if available]
-    ## [Section Title based on spread style] - [Card Name] - [card expressive name]
+    ## Thesis - [Card Name] - [card expressive name]
     [Para 1]
     [Para 2]
     [Para 3]
-    ## [Section Title based on spread style] - [Card Name] - [card expressive name]
+    ## Antithesis - [Card Name] - [card expressive name]
     [Para 1]
     [Para 2]
     [Para 3]
 
-    (continue for total sections)
+    ## Synthesis - [Card Name] - [card expressive name]
+    [Para 1]
+    [Para 2]
+    [Para 3]
  
     # Conclusion
-    [Conclusion Paragraph - Overall reading interpretation ensuring application to Context ({context}). Mentioning tarot draw: {tarot_draw} and their interpretation in the {draw_style}.]
-    [brief comment on the reading from the perspective of {deck} tarot deck and interpretation corpus.]
-
-    {language_string}
+    [Conclusion Paragraph - Overall reading interpretation ensuring application to Context ({context}). Mentioning the drawn cards and their interpretation in the {draw_style}.]
+    [/Structure]
+    
+    ---- [separator line]
+    
+    [Opening for discussion/conversation - based on the tarot reading prompt the reader for input or to ask questions to more deeply engage with the tarot reading]
     """
 
 def send_discord_message(message):
