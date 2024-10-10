@@ -46,15 +46,18 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
 
     # Send a request to OpenAI ChatGPT API for a tarot reading
     completion = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear."},
-            {"role": "user", "content": "I'd like a tarot reading."}
+            {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear. At the end of the reading prompt the user to ask any questions they would like to dive deeper"},
+            {"role": "user", "content": "I'd like a tarot reading. Please interpret the 'Thesis, Antithesis, Synthesis' spread for me clearly stating the cards and their meanings."}
         ]
     )
 
     # Extract the tarot reading from the response
     tarot_reading = completion.choices[0].message.content
+
+    # Store the tarot reading in user_data for later reference
+    context.user_data['tarot_reading'] = tarot_reading
 
     # Send the tarot reading back to the user on Telegram
     await query.message.reply_text(
@@ -86,8 +89,8 @@ async def button_tap(update: Update, context: CallbackContext) -> None:
     elif data == ASK_QUESTIONS_BUTTON:
         await query.message.reply_text("Please ask any follow-up questions you have about the tarot reading.")
     elif data == HELP_BUTTON:
-        await query.message.reply_text("This bot provides a tarot reading using the 'Thesis, Antithesis, Synthesis' framework. After the reading, you can ask questions for further insights!")
-
+        await query.message.reply_text("This bot can give you a tarot reading using the 'Thesis, Antithesis, Synthesis' spread. You can also ask questions for deeper insight.")
+    
     await query.answer()
 
 # Function to handle text messages and follow-up questions
@@ -95,11 +98,14 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     user_message = update.message.text
     logger.info(f"User {update.message.from_user.first_name} said: {user_message}")
 
+    # Retrieve the stored tarot reading from context.user_data
+    tarot_reading = context.user_data.get('tarot_reading', "No tarot reading available.")
+
     # Send the user's message to OpenAI ChatGPT API for a response
     completion = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant providing follow-up guidance based on a tarot reading. The tarot reading is here: {tarot_reading}. (tarot reading ends)"},
+            {"role": "system", "content": f"You are a helpful assistant providing follow-up guidance based on a tarot reading. The tarot reading is here: {tarot_reading}. (tarot reading ends)"},
             {"role": "user", "content": user_message}
         ]
     )
