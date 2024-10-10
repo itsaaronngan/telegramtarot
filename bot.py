@@ -25,15 +25,15 @@ MAIN_MENU_MARKUP = InlineKeyboardMarkup([[
 ]])
 
 # Define a function to handle the /start command
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text(
+async def start(update: Update, context: CallbackContext) -> None:
+    await update.message.reply_text(
         "Hello! I'm your AI-powered bot. You can ask me anything or use the menu below.",
         reply_markup=MAIN_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
 
 # Function to handle text messages and send them to OpenAI API
-def handle_message(update: Update, context: CallbackContext) -> None:
+async def handle_message(update: Update, context: CallbackContext) -> None:
     user_message = update.message.text
     logger.info(f"User {update.message.from_user.first_name} said: {user_message}")
 
@@ -50,19 +50,19 @@ def handle_message(update: Update, context: CallbackContext) -> None:
     reply = completion.choices[0].message['content']
 
     # Send the reply back to the user on Telegram
-    update.message.reply_text(reply)
+    await update.message.reply_text(reply)
 
 # Function to handle inline button clicks
-def button_tap(update: Update, context: CallbackContext) -> None:
+async def button_tap(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     data = query.data
 
     if data == ASK_GPT_BUTTON:
-        query.message.reply_text("Please type your question for GPT.")
+        await query.message.reply_text("Please type your question for GPT.")
     elif data == HELP_BUTTON:
-        query.message.reply_text("This bot can answer your questions using OpenAI's GPT model. Simply type a message or use the Ask GPT button!")
+        await query.message.reply_text("This bot can answer your questions using OpenAI's GPT model. Simply type a message or use the Ask GPT button!")
 
-    query.answer()
+    await query.answer()
 
 # Main function to set up the bot
 def main() -> None:
