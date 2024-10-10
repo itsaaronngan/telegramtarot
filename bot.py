@@ -46,7 +46,7 @@ tarotsystem_prompt = f"""
     ### Your Tarot Reading: [Card 1], [Card 2], [Card 3]    
 
 	### Thesis/Antithesis/Synthesis Reading
-    [gentle 50 word introduction explaining the basics of {draw_style} and the purpose of the reading.   	avoid: greetings such as "hi there" or "hello there", excitement, overenthusiasm, chipper.]
+    [gentle 50 word introduction explaining the basics of the "thesis, antithesis, synthesis" reading style and the purpose of the reading.   	avoid: greetings such as "hi there" or "hello there", excitement, overenthusiasm, chipper.]
 
     # Your Reading [short simple expressive title based on reading and context if available]
     ## Thesis - [Card Name] - [card expressive name]
