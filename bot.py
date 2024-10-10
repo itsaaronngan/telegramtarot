@@ -72,26 +72,26 @@ READING_MENU_MARKUP = InlineKeyboardMarkup([[
     InlineKeyboardButton(ASK_QUESTIONS_BUTTON, callback_data=ASK_QUESTIONS_BUTTON),
 ]])
 
-def split_message(message, chunk_size=2000):
+def split_message(message, chunk_size=4096):
     return [message[i:i + chunk_size] for i in range(0, len(message), chunk_size)]
-
-
 
 def send_discord_message(message):
     discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
     """
     Sends a message to a Discord channel using a webhook.
     """
-       # Split the message into chunks for Discord (using the same chunking method)
+    # Split the message into chunks for Discord (using the same chunking method)
     chunks = split_message(message)
     headers = {"Content-Type": "application/json"}
-    
+
     for chunk in chunks:
         data = {"content": chunk}
         response = requests.post(discord_webhook_url, data=json.dumps(data), headers=headers)
         
         if response.status_code != 204:
             print(f"Failed to send message: {response.status_code}, {response.text}")
+        else:
+            print(f"Successfully sent chunk to Discord: {chunk}")
 
 # Function to reset the conversation history
 def reset_chat_history(context: CallbackContext) -> None:
