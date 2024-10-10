@@ -4,6 +4,7 @@ from openai import OpenAI
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler, Defaults
+import requests
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -129,7 +130,7 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     # Add the user's message to chat history
     chat_history.append({"role": "user", "content": user_message})
 
-    # Send the user's message and previous chat history to OpenAI ChatGPT API for a response
+     # Send the user's message and previous chat history to OpenAI ChatGPT API for a response
     completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -147,19 +148,31 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     context.user_data['chat_history'] = chat_history
 
     # Send the reply back to the user on Telegram
-    await update.message.reply_text(f"{reply}\n\nYou can continue chatting, or use /start or /new to begin a new reading.")
+    await update.message.reply_text(f"{reply}\n\n Use /start or /new to begin a new reading or continue your conversation.",)
 
-# Main function to set up the bot
+# Main function to set up the bot and webhook
 def main() -> None:
     # Get the Telegram bot token and webhook URL from environment variables
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
     WEBHOOK_URL = os.getenv('WEBHOOK_URL')  # You need to set this environment variable for your webhook URL
+   # SECRET_TOKEN = os.getenv('SECRET_TOKEN')  # Optional secret token for verification (from env)
 
     # Create the Application
     application = Application.builder().token(TELEGRAM_TOKEN).defaults(Defaults(parse_mode=ParseMode.HTML)).build()
 
-    # Set up the webhook
-    application.bot.set_webhook(url=WEBHOOK_URL)
+    # Set the webhook with optional secret_token
+    webhook_data = {
+        "url": WEBHOOK_URL,
+      #  "secret_token": SECRET_TOKEN,  # Optional: can be None if not using a secret token
+        "allowed_updates": ["message", "callback_query"],  # Only process specific updates
+        "max_connections": 100,  # Example to increase max allowed connections
+    }
+    response = requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook", json=webhook_data)
+
+    if response.status_code == 200:
+        print("Webhook successfully set!")
+    else:
+        print(f"Failed to set webhook: {response.text}")
 
     # Register command handlers
     application.add_handler(CommandHandler('start', start))
