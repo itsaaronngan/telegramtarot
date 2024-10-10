@@ -3,7 +3,7 @@ import logging
 from openai import OpenAI
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler, Defaults
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -13,8 +13,11 @@ logger = logging.getLogger(__name__)
 openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
+# Manually set version number
+VERSION = "1.0.0"  # Update this manually whenever a new version is deployed
+
 # Pre-assign menu text and button text
-FIRST_MENU = "<b>Main Menu</b>\n\nUse this bot to receive a 'Thesis, Antithesis, Synthesis' tarot reading."
+FIRST_MENU = f"<b>Main Menu (Version {VERSION})</b>\n\nUse this bot to receive a 'Thesis, Antithesis, Synthesis' tarot reading."
 ASK_READING_BUTTON = "Tarot Reading"
 ASK_QUESTIONS_BUTTON = "Ask Questions"
 HELP_BUTTON = "Help"
@@ -40,7 +43,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     reset_chat_history(context)
 
     await update.message.reply_text(
-        "Welcome! I'm your tarot bot. You can get a 'Thesis, Antithesis, Synthesis' tarot reading or ask me anything. Use the menu below.",
+        f"Welcome! I'm your tarot bot (Version {VERSION}). You can get a 'Thesis, Antithesis, Synthesis' tarot reading or ask me anything. Use the menu below.",
         reply_markup=MAIN_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
@@ -51,7 +54,7 @@ async def new_reading(update: Update, context: CallbackContext) -> None:
     reset_chat_history(context)
 
     await update.message.reply_text(
-        "Starting a new tarot reading session. You can get a fresh 'Thesis, Antithesis, Synthesis' tarot reading or ask anything. Use the menu below.",
+        f"Starting a new tarot reading session (Version {VERSION}). You can get a fresh 'Thesis, Antithesis, Synthesis' tarot reading or ask anything. Use the menu below.",
         reply_markup=MAIN_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
@@ -130,10 +133,10 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": f"You are a gentle, empathetic, and conversational assistant providing thoughtful follow-up guidance based on a tarot reading. Review the chat history to understand the reading and the user's context. If the user shares something personal or emotional, respond with empathy (e.g., 'I can understand how that might feel') and follow up with gentle, open-ended questions like, 'Do you want to tell me more about what’s going on?' to keep the conversation flowing if there is a gap. Aim to be supportive, curious, and non-judgmental. Provide insight and additional depth from the tarot reading where suitable. Provide a summary of the discussion if requested (and advise that this is available if you think it will be helpful) The conversation history for your reference is: {chat_history}"},
+            {"role": "system", "content": f"You are a gentle, empathetic, and conversational assistant providing thoughtful follow-up guidance based on a tarot reading. Review the chat history to understand the reading and the user's context. If the user shares something personal or emotional, respond with empathy (e.g., 'I can understand how that might feel') and follow up with gentle, open-ended questions like, 'Do you want to tell me more about what’s going on?' to keep the conversation flowing. Aim to be supportive, curious, and non-judgmental. The conversation history for your reference is: {chat_history}"},
             {"role": "user", "content": user_message}
-        ]
     )
+
     # Extract the reply from the response
     reply = completion.choices[0].message.content
 
@@ -148,15 +151,19 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
 
 # Main function to set up the bot
 def main() -> None:
-    # Get the Telegram bot token from environment variables (set this in Heroku)
+    # Get the Telegram bot token and webhook URL from environment variables
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+    WEBHOOK_URL = os.getenv('WEBHOOK_URL')  # You need to set this environment variable for your webhook URL
 
     # Create the Application
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
+    application = Application.builder().token(TELEGRAM_TOKEN).defaults(Defaults(parse_mode=ParseMode.HTML)).build()
+
+    # Set up the webhook
+    application.bot.set_webhook(url=WEBHOOK_URL)
 
     # Register command handlers
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('new', new_reading))  # Added handler for /new command
+    application.add_handler(CommandHandler('new', new_reading))
 
     # Register message handler for non-command text messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
@@ -164,8 +171,12 @@ def main() -> None:
     # Register callback query handler for inline buttons
     application.add_handler(CallbackQueryHandler(button_tap))
 
-    # Start polling for updates from Telegram
-    application.run_polling()
+    # Run the bot with the webhook (no polling)
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.getenv('PORT', '8443')),
+        url_path=TELEGRAM_TOKEN
+    )
 
 if __name__ == '__main__':
     main()
