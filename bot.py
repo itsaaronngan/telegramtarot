@@ -46,7 +46,7 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
 
     # Send a request to OpenAI ChatGPT API for a tarot reading
     completion = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear."},
             {"role": "user", "content": "I'd like a tarot reading."}
@@ -54,7 +54,7 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     )
 
     # Extract the tarot reading from the response
-    tarot_reading = completion.choices[0].message['content']
+    tarot_reading = completion.choices[0].message.content
 
     # Send the tarot reading back to the user on Telegram
     await query.message.reply_text(
