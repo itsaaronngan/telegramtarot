@@ -18,6 +18,44 @@ client = OpenAI(api_key=openai_api_key)
 # Manually set version number
 VERSION = "1.0"  # Update this manually whenever a new version is deployed
 
+tarotsystem_prompt = f"""
+   
+    ## Instructions
+    Create a 3 card Thesis, Antithesis, Synthesis tarot reading with a total of 500 words. Follow the sample structure exactly. Use casual conversational gentle tone. Promote conversation and in depth exploration.
+
+    ## Tone, Style, and Language
+    Avoid white juju and overly positive language that is overly vague/shallow. Avoid self-help buzzwords. Instead of using words like "transformation" use "transmutation", instead of "manifest" make references to "taking action" Use a gentle, empathetic, and respectful tone. Avoid overly formal language. If appropriate, reference the complexity inherant in life: e.g. happiness cannot be appreciated without sorrow.
+
+    [Structure]
+    ### Your Tarot Reading: [Card 1], [Card 2], [Card 3]    
+
+	### Thesis/Antithesis/Synthesis Reading
+    [gentle 50 word introduction explaining the basics of the "thesis, antithesis, synthesis" reading style and the purpose of the reading.   	avoid: greetings such as "hi there" or "hello there", excitement, overenthusiasm, chipper.]
+
+    # Your Reading [short simple expressive title based on reading and context if available]
+    ## Thesis - [Card Name] - [card expressive name]
+    [Para 1]
+    [Para 2]
+    [Para 3]
+    ## Antithesis - [Card Name] - [card expressive name]
+    [Para 1]
+    [Para 2]
+    [Para 3]
+
+    ## Synthesis - [Card Name] - [card expressive name]
+    [Para 1]
+    [Para 2]
+    [Para 3]
+ 
+    # Conclusion
+    [Conclusion Paragraph - Overall reading interpretation and subtle relation to real life .]
+    [/Structure]
+    
+    ---- [separator line]
+    
+    [Opening for discussion/conversation - based on the tarot reading prompt the reader for input or to ask questions to more deeply engage with the tarot reading]
+    """
+
 # Pre-assign menu text and button text
 FIRST_MENU = f"<b>Main Menu (Version {VERSION})</b>\n\nUse this bot to receive a 'Thesis, Antithesis, Synthesis' tarot reading."
 ASK_READING_BUTTON = "Tarot Reading"
@@ -34,17 +72,32 @@ READING_MENU_MARKUP = InlineKeyboardMarkup([[
     InlineKeyboardButton(ASK_QUESTIONS_BUTTON, callback_data=ASK_QUESTIONS_BUTTON),
 ]])
 
+def split_message(message, chunk_size=4096):
+    return [message[i:i + chunk_size] for i in range(0, len(message), chunk_size)]
+
+    # Example usage:
+    long_message = "..."  # The long message you want to send
+    chunks = split_message(long_message)
+
+    # Send each chunk as a separate message
+    for chunk in chunks:
+        await update.message.reply_text(chunk)
+
 def send_discord_message(message):
     discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
     """
     Sends a message to a Discord channel using a webhook.
     """
-    data = {"content": message}
+       # Split the message into chunks for Discord (using the same chunking method)
+    chunks = split_message(message)
     headers = {"Content-Type": "application/json"}
     
-    response = requests.post(discord_webhook_url, data=json.dumps(data), headers=headers)
-    if response.status_code != 204:
-        print(f"Failed to send message: {response.status_code}, {response.text}")
+    for chunk in chunks:
+        data = {"content": chunk}
+        response = requests.post(discord_webhook_url, data=json.dumps(data), headers=headers)
+        
+        if response.status_code != 204:
+            print(f"Failed to send message: {response.status_code}, {response.text}")
 
 # Function to reset the conversation history
 def reset_chat_history(context: CallbackContext) -> None:
@@ -88,8 +141,7 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear. After your reading, inform the user they can either continue chatting or use /start or /new to begin a new reading."},
-            {"role": "user", "content": "I'd like a tarot reading."}
+            {"role": "system", "content": tarotsystem_prompt},
         ]
     )
 
@@ -102,13 +154,21 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     # Add the tarot reading to chat history
     context.user_data['chat_history'].append({"role": "assistant", "content": tarot_reading})
 
-    # Send the tarot reading back to the user on Telegram
-    await query.message.reply_text(
-        f"<b>Your Tarot Reading:</b>\n\n{tarot_reading}\n\nYou can continue chatting, or use /start or /new to begin a new reading.",
-        reply_markup=READING_MENU_MARKUP,
-        parse_mode=ParseMode.HTML
-    )
-    send_discord_message(f"User {user_first_name} received a tarot reading.\n\n{tarot_reading}")
+    # Split the tarot reading into chunks of 4096 characters
+    chunks = split_message(tarot_reading)
+
+    # Send each chunk separately to avoid Telegram's message length limit
+    for chunk in chunks:
+        await query.message.reply_text(
+            f"<b>Your Tarot Reading:</b>\n\n{chunk}",
+            reply_markup=READING_MENU_MARKUP,
+            parse_mode=ParseMode.HTML
+        )
+    
+    # Send the tarot reading to Discord in chunks
+    for chunk in chunks:
+        send_discord_message(f"User {user_first_name} received the following tarot reading chunk:\n\n{chunk}")
+
     await query.answer()
 
 # Function to handle follow-up questions after the tarot reading
@@ -210,7 +270,8 @@ def main() -> None:
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.getenv('PORT', '8443')),
-        url_path=TELEGRAM_TOKEN
+        url_path=TELEGRAM_TOKEN,  # This specifies the path for webhook
+        webhook_url=f"https://{os.getenv('HEROKU_APP_NAME')}.herokuapp.com/{TELEGRAM_TOKEN}"  # Full webhook URL
     )
 
 if __name__ == '__main__':
