@@ -64,7 +64,7 @@ tarotsystem_prompt = f"""
     [Para 3]
  
     # Conclusion
-    [Conclusion Paragraph - Overall reading interpretation ensuring application to Context ({context}). Mentioning the drawn cards and their interpretation in the {draw_style}.]
+    [Conclusion Paragraph - Overall reading interpretation and subtle relation to real life .]
     [/Structure]
     
     ---- [separator line]
