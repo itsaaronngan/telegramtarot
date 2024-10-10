@@ -29,10 +29,29 @@ READING_MENU_MARKUP = InlineKeyboardMarkup([[
     InlineKeyboardButton(ASK_QUESTIONS_BUTTON, callback_data=ASK_QUESTIONS_BUTTON),
 ]])
 
+# Function to reset the conversation history
+def reset_chat_history(context: CallbackContext) -> None:
+    """Clears the conversation history for a fresh session."""
+    context.user_data['chat_history'] = []
+
 # Define a function to handle the /start command
 async def start(update: Update, context: CallbackContext) -> None:
+    # Reset the conversation history
+    reset_chat_history(context)
+
     await update.message.reply_text(
         "Welcome! I'm your tarot bot. You can get a 'Thesis, Antithesis, Synthesis' tarot reading or ask me anything. Use the menu below.",
+        reply_markup=MAIN_MENU_MARKUP,
+        parse_mode=ParseMode.HTML
+    )
+
+# Define a function to handle the /new command
+async def new_reading(update: Update, context: CallbackContext) -> None:
+    # Reset the conversation history
+    reset_chat_history(context)
+
+    await update.message.reply_text(
+        "Starting a new tarot reading session. You can get a fresh 'Thesis, Antithesis, Synthesis' tarot reading or ask anything. Use the menu below.",
         reply_markup=MAIN_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
@@ -46,10 +65,10 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
 
     # Send a request to OpenAI ChatGPT API for a tarot reading
     completion = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear. At the end of the reading prompt the user to ask any questions they would like to dive deeper"},
-            {"role": "user", "content": "I'd like a tarot reading. Please interpret the 'Thesis, Antithesis, Synthesis' spread for me clearly stating the cards and their meanings."}
+            {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear. After your reading, inform the user they can either continue chatting or use /start or /new to begin a new reading."},
+            {"role": "user", "content": "I'd like a tarot reading."}
         ]
     )
 
@@ -59,9 +78,12 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     # Store the tarot reading in user_data for later reference
     context.user_data['tarot_reading'] = tarot_reading
 
+    # Add the tarot reading to chat history
+    context.user_data['chat_history'].append({"role": "assistant", "content": tarot_reading})
+
     # Send the tarot reading back to the user on Telegram
     await query.message.reply_text(
-        f"<b>Your Tarot Reading:</b>\n\n{tarot_reading}",
+        f"<b>Your Tarot Reading:</b>\n\n{tarot_reading}\n\nYou can continue chatting, or use /start or /new to begin a new reading.",
         reply_markup=READING_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
@@ -98,23 +120,29 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     user_message = update.message.text
     logger.info(f"User {update.message.from_user.first_name} said: {user_message}")
 
-    # Retrieve the stored tarot reading from context.user_data
-    tarot_reading = context.user_data.get('tarot_reading', "No tarot reading available.")
+    # Retrieve the stored chat history
+    chat_history = context.user_data.get('chat_history', [])
 
-    # Send the user's message to OpenAI ChatGPT API for a response
+    # Add the user's message to chat history
+    chat_history.append({"role": "user", "content": user_message})
+
+    # Send the user's message and previous chat history to OpenAI ChatGPT API for a response
     completion = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": f"You are a helpful assistant providing follow-up guidance based on a tarot reading. Do not repeat the tarot reading format, instead take a warm empathetic tone and keep responses brief and ask follow-up questions that aim to acknowledge the experience of the user and stimulate a supportive conversation. For reference, the tarot reading is here: {tarot_reading}. (tarot reading ends)"},
-            {"role": "user", "content": user_message}
-        ]
+        model="gpt-4",
+        messages=chat_history + [{"role": "system", "content": "Remind the user they can either continue chatting or use /start or /new to begin a new reading."}]
     )
 
     # Extract the reply from the response
     reply = completion.choices[0].message.content
 
+    # Add the assistant's reply to chat history
+    chat_history.append({"role": "assistant", "content": reply})
+
+    # Update the stored chat history
+    context.user_data['chat_history'] = chat_history
+
     # Send the reply back to the user on Telegram
-    await update.message.reply_text(reply)
+    await update.message.reply_text(f"{reply}\n\nYou can continue chatting, or use /start or /new to begin a new reading.")
 
 # Main function to set up the bot
 def main() -> None:
@@ -126,6 +154,7 @@ def main() -> None:
 
     # Register command handlers
     application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('new', new_reading))  # Added handler for /new command
 
     # Register message handler for non-command text messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
