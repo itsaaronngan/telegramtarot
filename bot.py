@@ -247,7 +247,8 @@ def main() -> None:
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.getenv('PORT', '8443')),
-        url_path=TELEGRAM_TOKEN
+        url_path=TELEGRAM_TOKEN,  # This specifies the path for webhook
+        webhook_url=f"https://{os.getenv('HEROKU_APP_NAME')}.herokuapp.com/{TELEGRAM_TOKEN}"  # Full webhook URL
     )
 
 if __name__ == '__main__':
