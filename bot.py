@@ -220,13 +220,25 @@ def main() -> None:
     # Create the Application
     application = Application.builder().token(TELEGRAM_TOKEN).defaults(Defaults(parse_mode=ParseMode.HTML)).build()
 
-    # Set the webhook with optional secret_token
-    webhook_data = {
-        "url": WEBHOOK_URL,
-        "allowed_updates": ["message", "callback_query"],  # Only process specific updates
-        "max_connections": 100,  # Example to increase max allowed connections
-    }
-    response = requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook", json=webhook_data)
+    # Check if the webhook is already set
+    response = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getWebhookInfo")
+    webhook_info = response.json()
+
+    if webhook_info['result']['url'] == WEBHOOK_URL:
+        print("Webhook is already set.")
+    else:
+        # Set the webhook with optional secret_token
+        webhook_data = {
+            "url": WEBHOOK_URL,
+            "allowed_updates": ["message", "callback_query"],  # Only process specific updates
+            "max_connections": 100,  # Example to increase max allowed connections
+        }
+        response = requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook", json=webhook_data)
+
+        if response.status_code == 200:
+            print("Webhook successfully set!")
+        else:
+            print(f"Failed to set webhook: {response.text}")
 
     if response.status_code == 200:
         print("Webhook successfully set!")
