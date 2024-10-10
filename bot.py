@@ -83,9 +83,11 @@ async def button_tap(update: Update, context: CallbackContext) -> None:
 
     if data == ASK_READING_BUTTON:
         await handle_tarot_reading(update, context)
+    elif data == ASK_QUESTIONS_BUTTON:
+        await query.message.reply_text("Please ask any follow-up questions you have about the tarot reading.")
     elif data == HELP_BUTTON:
-        await query.message.reply_text("This bot can give you a tarot reading using the 'Thesis, Antithesis, Synthesis' spread. You can also ask questions for deeper insight.")
-    
+        await query.message.reply_text("This bot provides a tarot reading using the 'Thesis, Antithesis, Synthesis' framework. After the reading, you can ask questions for further insights!")
+
     await query.answer()
 
 # Function to handle text messages and follow-up questions
@@ -93,17 +95,17 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     user_message = update.message.text
     logger.info(f"User {update.message.from_user.first_name} said: {user_message}")
 
-    # Send the user's message to OpenAI API (ChatGPT)
-    completion = client.completions.create(
-        model="gpt-4o",  
+    # Send the user's message to OpenAI ChatGPT API for a response
+    completion = client.chat.completions.create(
+        model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant in a telegram chatbot. The user has just received a tarot reading and is now asking follow-up questions. Provide clear, insightful responses."},
+            {"role": "system", "content": "You are a helpful assistant providing follow-up guidance based on a tarot reading. The tarot reading is here: {tarot_reading}. (tarot reading ends)"},
             {"role": "user", "content": user_message}
         ]
     )
 
     # Extract the reply from the response
-    reply = completion.choices[0].message['content']
+    reply = completion.choices[0].message.content
 
     # Send the reply back to the user on Telegram
     await update.message.reply_text(reply)
