@@ -65,7 +65,7 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
 
     # Send a request to OpenAI ChatGPT API for a tarot reading
     completion = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear. After your reading, inform the user they can either continue chatting or use /start or /new to begin a new reading."},
             {"role": "user", "content": "I'd like a tarot reading."}
@@ -128,10 +128,11 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
 
     # Send the user's message and previous chat history to OpenAI ChatGPT API for a response
     completion = client.chat.completions.create(
-        model="gpt-4",
-        messages=chat_history + [{"role": "system", "content": "Remind the user they can either continue chatting or use /start or /new to begin a new reading."}]
-    )
-
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": f"You are a helpful assistant providing follow-up guidance based on a tarot reading. Review the chat history to understand the tarot reading and the context. Before responding analyse the user message and identify whether to ask for more information, or be supportive, or provide balanced non-judgemental feedback. Responding gently and conversationally. The conversation history for your reference is: {chat_history}"},
+            {"role": "user", "content": user_message}
+        ]
     # Extract the reply from the response
     reply = completion.choices[0].message.content
 
