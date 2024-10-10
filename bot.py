@@ -1,10 +1,11 @@
 import os
 import logging
+import json
+import requests
 from openai import OpenAI
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, CallbackQueryHandler, Defaults
-import requests
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -33,6 +34,52 @@ READING_MENU_MARKUP = InlineKeyboardMarkup([[
     InlineKeyboardButton(ASK_QUESTIONS_BUTTON, callback_data=ASK_QUESTIONS_BUTTON),
 ]])
 
+tarotsystem_prompt = f"""
+    {instruction_string}
+    {context_string}
+    {style_string}
+    
+    ## Instructions
+    Create the reading with a total of {wordcount} words. Follow the sample structure exactly. {language_string}. Use casual conversational gentle tone. 
+
+    ## Tone, Style, and Language
+    Avoid white juju and overly positive language that is overly vague/shallow. Avoid self-help buzzwords. Instead of using words like "transformation" use "transmutation", instead of "manifest" make references to "taking action" Use a gentle, empathetic, and respectful tone. Avoid overly formal language. If appropriate, reference the complexity inherant in life: e.g. happiness cannot be appreciated without sorrow.
+
+    ## Sample Structure:
+    ### [{draw_style}] Reading
+    [gentle 70 word introduction explaining the basics of {draw_style} and the purpose of the reading. {context_describe_string}. tone: respectful, warm, gentle, empathetic. avoid: greetings such as "hi there" or "hello there", excitement, overenthusiasm, chipper.]
+
+    # Your Reading [short simple expressive title based on reading and context if available]
+    ## [Section Title based on spread style] - [Card Name] - [card expressive name]
+    [Para 1]
+    [Para 2]
+    [Para 3]
+    ## [Section Title based on spread style] - [Card Name] - [card expressive name]
+    [Para 1]
+    [Para 2]
+    [Para 3]
+
+    (continue for total sections)
+ 
+    # Conclusion
+    [Conclusion Paragraph - Overall reading interpretation ensuring application to Context ({context}). Mentioning tarot draw: {tarot_draw} and their interpretation in the {draw_style}.]
+    [brief comment on the reading from the perspective of {deck} tarot deck and interpretation corpus.]
+
+    {language_string}
+    """
+
+def send_discord_message(message):
+    discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
+    """
+    Sends a message to a Discord channel using a webhook.
+    """
+    data = {"content": message}
+    headers = {"Content-Type": "application/json"}
+    
+    response = requests.post(discord_webhook_url, data=json.dumps(data), headers=headers)
+    if response.status_code != 204:
+        print(f"Failed to send message: {response.status_code}, {response.text}")
+
 # Function to reset the conversation history
 def reset_chat_history(context: CallbackContext) -> None:
     """Clears the conversation history for a fresh session."""
@@ -43,22 +90,26 @@ async def start(update: Update, context: CallbackContext) -> None:
     # Reset the conversation history
     reset_chat_history(context)
 
+    welcome_message = f"Welcome! I'm your tarot bot (Version {VERSION}). You can get a 'Thesis, Antithesis, Synthesis' tarot reading or ask me anything. Use the menu below."
     await update.message.reply_text(
-        f"Welcome! I'm your tarot bot (Version {VERSION}). You can get a 'Thesis, Antithesis, Synthesis' tarot reading or ask me anything. Use the menu below.",
+        welcome_message,
         reply_markup=MAIN_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
+    send_discord_message(f"User {update.message.from_user.first_name} started the bot.\n\n{welcome_message}")
 
 # Define a function to handle the /new command
 async def new_reading(update: Update, context: CallbackContext) -> None:
     # Reset the conversation history
     reset_chat_history(context)
 
+    new_reading_message = f"Starting a new tarot reading session (Version {VERSION}). You can get a fresh 'Thesis, Antithesis, Synthesis' tarot reading or ask anything. Use the menu below."
     await update.message.reply_text(
-        f"Starting a new tarot reading session (Version {VERSION}). You can get a fresh 'Thesis, Antithesis, Synthesis' tarot reading or ask anything. Use the menu below.",
+        new_reading_message,
         reply_markup=MAIN_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
+    send_discord_message(f"User {update.message.from_user.first_name} started a new reading.\n\n{new_reading_message}")
 
 async def handle_tarot_reading(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
@@ -69,11 +120,10 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
 
     # Send a request to OpenAI ChatGPT API for a tarot reading
     completion = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a tarot reader giving a 'Thesis, Antithesis, Synthesis' reading. Keep the responses brief and clear. After your reading, inform the user they can either continue chatting or use /start or /new to begin a new reading."},
-            {"role": "user", "content": "I'd like a tarot reading."}
-        ]
+            {"role": "system", "content": tarotsystem_prompt},
+          ]
     )
 
     # Extract the tarot reading from the response
@@ -91,6 +141,7 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
         reply_markup=READING_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
+    send_discord_message(f"User {user_first_name} received a tarot reading.\n\n{tarot_reading}")
     await query.answer()
 
 # Function to handle follow-up questions after the tarot reading
@@ -99,9 +150,13 @@ async def handle_followup_questions(update: Update, context: CallbackContext) ->
     data = query.data
 
     if data == ASK_QUESTIONS_BUTTON:
-        await query.message.reply_text("Please ask any follow-up questions you have about the tarot reading.")
+        followup_message = "Please ask any follow-up questions you have about the tarot reading."
+        await query.message.reply_text(followup_message)
+        send_discord_message(f"User {query.from_user.first_name} asked for follow-up questions.\n\n{followup_message}")
     elif data == HELP_BUTTON:
-        await query.message.reply_text("This bot provides a tarot reading using the 'Thesis, Antithesis, Synthesis' framework. After the reading, you can ask questions for further insights!")
+        help_message = "This bot provides a tarot reading using the 'Thesis, Antithesis, Synthesis' framework. After the reading, you can ask questions for further insights!"
+        await query.message.reply_text(help_message)
+        send_discord_message(f"User {query.from_user.first_name} asked for help.\n\n{help_message}")
 
     await query.answer()
 
@@ -130,12 +185,13 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     # Add the user's message to chat history
     chat_history.append({"role": "user", "content": user_message})
 
-     # Send the user's message and previous chat history to OpenAI ChatGPT API for a response
+    # Send the user's message and previous chat history to OpenAI ChatGPT API for a response
     completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": f"You are a gentle, empathetic, and conversational assistant providing thoughtful follow-up guidance based on a tarot reading. Review the chat history to understand the reading and the user's context. If the user shares something personal or emotional, respond with empathy (e.g., 'I can understand how that might feel') and follow up with gentle, open-ended questions like, 'Do you want to tell me more about what’s going on?' to keep the conversation flowing. Aim to be supportive, curious, and non-judgmental. The conversation history for your reference is: {chat_history}"},
             {"role": "user", "content": user_message}
+        ]
     )
 
     # Extract the reply from the response
@@ -148,14 +204,14 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     context.user_data['chat_history'] = chat_history
 
     # Send the reply back to the user on Telegram
-    await update.message.reply_text(f"{reply}\n\n Use /start or /new to begin a new reading or continue your conversation.",)
+    await update.message.reply_text(f"{reply}\n\n Use /start or /new to begin a new reading or continue your conversation.")
+    send_discord_message(f"User {update.message.from_user.first_name} said: {user_message}\n\nBot replied: {reply}")
 
 # Main function to set up the bot and webhook
 def main() -> None:
     # Get the Telegram bot token and webhook URL from environment variables
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
     WEBHOOK_URL = os.getenv('WEBHOOK_URL')  # You need to set this environment variable for your webhook URL
-   # SECRET_TOKEN = os.getenv('SECRET_TOKEN')  # Optional secret token for verification (from env)
 
     # Create the Application
     application = Application.builder().token(TELEGRAM_TOKEN).defaults(Defaults(parse_mode=ParseMode.HTML)).build()
@@ -163,7 +219,6 @@ def main() -> None:
     # Set the webhook with optional secret_token
     webhook_data = {
         "url": WEBHOOK_URL,
-      #  "secret_token": SECRET_TOKEN,  # Optional: can be None if not using a secret token
         "allowed_updates": ["message", "callback_query"],  # Only process specific updates
         "max_connections": 100,  # Example to increase max allowed connections
     }
