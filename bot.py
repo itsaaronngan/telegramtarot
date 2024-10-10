@@ -133,6 +133,7 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
             {"role": "system", "content": f"You are a helpful assistant providing follow-up guidance based on a tarot reading. Review the chat history to understand the tarot reading and the context. Before responding analyse the user message and identify whether to ask for more information, or be supportive, or provide balanced non-judgemental feedback. Responding gently and conversationally. The conversation history for your reference is: {chat_history}"},
             {"role": "user", "content": user_message}
         ]
+    )
     # Extract the reply from the response
     reply = completion.choices[0].message.content
 
