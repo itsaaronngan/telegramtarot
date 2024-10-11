@@ -16,7 +16,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key)
 
 # Manually set version number
-VERSION = "1.0"  # Update this manually whenever a new version is deployed
+VERSION = "1.1"  # Update this manually whenever a new version is deployed
 
 tarotsystem_prompt = f"""
    
@@ -152,7 +152,7 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     # Send each chunk separately to avoid Telegram's message length limit
     for chunk in chunks:
         await query.message.reply_text(
-            f"<b>Your Tarot Reading:</b>\n\n{chunk}",
+            f"{chunk}",
             reply_markup=READING_MENU_MARKUP,
             parse_mode=ParseMode.HTML
         )
