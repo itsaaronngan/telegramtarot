@@ -59,7 +59,6 @@ tarotsystem_prompt = f"""
 # Pre-assign menu text and button text
 FIRST_MENU = f"<b>Main Menu (Version {VERSION})</b>\n\nUse this bot to receive a 'Thesis, Antithesis, Synthesis' tarot reading."
 ASK_READING_BUTTON = "Tarot Reading"
-ASK_QUESTIONS_BUTTON = "Ask Questions"
 HELP_BUTTON = "Help"
 
 # Build keyboards
@@ -69,7 +68,6 @@ MAIN_MENU_MARKUP = InlineKeyboardMarkup([[
 ]])
 
 READING_MENU_MARKUP = InlineKeyboardMarkup([[
-    InlineKeyboardButton(ASK_QUESTIONS_BUTTON, callback_data=ASK_QUESTIONS_BUTTON),
 ]])
 
 def split_message(message, chunk_size=1900):
@@ -103,7 +101,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     # Reset the conversation history
     reset_chat_history(context)
 
-    welcome_message = f"Welcome! I'm your tarot bot (Version {VERSION}). You can get a 'Thesis, Antithesis, Synthesis' tarot reading or ask me anything. Use the menu below."
+    welcome_message = f"Welcome! I'm your 3 card tarot bot (Version {VERSION}). You can get a 'Thesis, Antithesis, Synthesis' tarot reading or ask me anything. Use the menu below. If you have a specific type of "
     await update.message.reply_text(
         welcome_message,
         reply_markup=MAIN_MENU_MARKUP,
@@ -161,7 +159,7 @@ async def handle_tarot_reading(update: Update, context: CallbackContext) -> None
     
     # Send the tarot reading to Discord in chunks
     for chunk in chunks:
-        send_discord_message(f"User {user_first_name} received the following tarot reading chunk:\n\n{chunk}")
+        send_discord_message(f"{chunk}")
 
     await query.answer()
 
@@ -170,12 +168,8 @@ async def handle_followup_questions(update: Update, context: CallbackContext) ->
     query = update.callback_query
     data = query.data
 
-    if data == ASK_QUESTIONS_BUTTON:
-        followup_message = "Please ask any follow-up questions you have about the tarot reading."
-        await query.message.reply_text(followup_message)
-        send_discord_message(f"User {query.from_user.first_name} asked for follow-up questions.\n\n{followup_message}")
-    elif data == HELP_BUTTON:
-        help_message = "This bot provides a tarot reading using the 'Thesis, Antithesis, Synthesis' framework. After the reading, you can ask questions for further insights!"
+    if data == HELP_BUTTON:
+        help_message = "This bot provides a tarot reading using the 'Thesis, Antithesis, Synthesis' framework. After the reading is complete you can ask questions or have a conversation to deepen your exploration of the reading in relation to your circumstances"
         await query.message.reply_text(help_message)
         send_discord_message(f"User {query.from_user.first_name} asked for help.\n\n{help_message}")
 
@@ -188,8 +182,6 @@ async def button_tap(update: Update, context: CallbackContext) -> None:
 
     if data == ASK_READING_BUTTON:
         await handle_tarot_reading(update, context)
-    elif data == ASK_QUESTIONS_BUTTON:
-        await query.message.reply_text("Please ask any follow-up questions you have about the tarot reading.")
     elif data == HELP_BUTTON:
         await query.message.reply_text("This bot can give you a tarot reading using the 'Thesis, Antithesis, Synthesis' spread. You can also ask questions for deeper insight.")
     
@@ -210,7 +202,7 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": f"You are a gentle, empathetic, and conversational assistant providing thoughtful follow-up guidance based on a tarot reading. Review the chat history to understand the reading and the user's context. If the user shares something personal or emotional, respond with empathy (e.g., 'I can understand how that might feel') and follow up with gentle, open-ended questions like, 'Do you want to tell me more about what’s going on?' to keep the conversation flowing. Aim to be supportive, curious, and non-judgmental. The conversation history for your reference is: {chat_history}"},
+            {"role": "system", "content": f"You are a gentle, empathetic, and conversational tarot reading expert. Your job is to provide engaging and thought proviking conversation and guidance based on a tarot reading. Review the chat history to understand the reading and the user's context. If the user shares something personal or emotional, respond with empathy (e.g., 'I can understand how that might feel'), offer insight from the tarot reading, and prompt further conversation with gentle, open-ended questions like, 'Do you want to tell me more about what’s going on?' to keep the conversation flowing. Aim to be supportive, curious, and non-judgmental. The conversation history for your reference is: {chat_history}. If the user asks for anything else please support them from your perspective as a Tarot expert, including completing alternative styles of tarot draws and interpretations. For any direct requests that ask for non-tarot related actions, respond to indicate that you're not quite sure what that is, and ask if they would like something tarot related instead based on what they have requested. "},
             {"role": "user", "content": user_message}
         ]
     )
