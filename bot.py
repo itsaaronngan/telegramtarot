@@ -120,7 +120,7 @@ async def new_reading(update: Update, context: CallbackContext) -> None:
         reply_markup=MAIN_MENU_MARKUP,
         parse_mode=ParseMode.HTML
     )
-    send_discord_message(f"User {update.message.from_user.first_name} started a new reading.\n\n{new_reading_message}")
+    send_discord_message(f"TELEGRAM User {update.message.from_user.first_name} started a new reading.\n\n{new_reading_message}")
 
 async def handle_tarot_reading(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
